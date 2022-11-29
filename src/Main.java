@@ -1,5 +1,6 @@
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Scanner;
 import javax.xml.parsers.DocumentBuilder;
@@ -9,6 +10,7 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -16,25 +18,106 @@ import org.w3c.dom.NodeList;
 
 public class Main {
     static Scanner scanner = new Scanner(System.in);  // Create a Scanner object
-
+    static ArrayList<Book> currentBooks = new ArrayList<>();
+    static Document doc;
+    static Element rootElement;
     public static void main(String[] args) {
-        System.out.println("Choose a number:");
-        System.out.println("1- Insert books");
-        System.out.println("2- search for a book");
-        System.out.println("3- delete a book with id");
-        String userChoice = scanner.nextLine();//read input string
-        switch (userChoice) {
-            case "1":
-                insertBooks();
-                break;
-            case "2":
-                searchForBook();
-                break;
-            case "3":
+        try {
 
-                break;
+            File f = new File("D:\\SoaAssignment1\\books.xml");
+            if(f.exists() && !f.isDirectory()) {
+                File xmlFile = new File("books.xml");
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                doc = builder.parse(xmlFile);
+                rootElement = doc.getDocumentElement();
+
+                NodeList studentNodes = doc.getElementsByTagName("Book");
+                System.out.println(studentNodes.getLength());
+                System.out.println(studentNodes);
+                for (int i = 0; i < studentNodes.getLength(); i++) {
+                    Node studentNode = studentNodes.item(i);
+                    if (studentNode.getNodeType() == Node.ELEMENT_NODE) {
+                        Element studentElement = (Element) studentNode;
+                        String bookId = studentElement.getAttribute("bookId");
+                        String author = studentElement.getElementsByTagName("Author").item(0).getTextContent();
+                        String title = studentElement.getElementsByTagName("Title").item(0).getTextContent();
+                        String genre = studentElement.getElementsByTagName("Genre").item(0).getTextContent();
+                        String price = studentElement.getElementsByTagName("Price").item(0).getTextContent();
+                        String publishDate = studentElement.getElementsByTagName("Publish_Date").item(0).getTextContent();
+                        String description = studentElement.getElementsByTagName("Description").item(0).getTextContent();
+                        Book book = new Book(bookId, author, title, genre, price, publishDate, description);
+                        currentBooks.add(book);
+                        System.out.println(book);
+                    }
+                }
+            }
+            else {
+                DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+                doc = docBuilder.newDocument();
+                rootElement = doc.createElement("Catalogue");
+                doc.appendChild(rootElement);
+
+                DOMSource source = new DOMSource(doc);
+                StreamResult result = new StreamResult(new File("books.xml"));
+
+                TransformerFactory transformerFactory = TransformerFactory.newInstance();
+                Transformer transformer = transformerFactory.newTransformer();
+                // Beautify the format of the resulted XML
+                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+                transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
+                transformer.transform(source, result);
+            }
+
+            System.out.println("Choose a number:");
+            System.out.println("1- Insert books");
+            System.out.println("2- search for a book");
+            System.out.println("3- delete a book with id");
+            String userChoice = scanner.nextLine();//read input string
+            switch (userChoice) {
+                case "1" -> insertBooks(doc, rootElement);
+                case "2" -> searchForBook();
+                case "3" -> deleteBookById();
+            }
+        } catch (Exception e){
+            e.printStackTrace();
         }
 
+
+    }
+
+    private static void deleteBookById() {
+        System.out.println("Enter book id to delete it:");
+        String bookId = scanner.nextLine();//read input string
+        try {
+            File xmlFile = new File("books.xml");
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(xmlFile);
+
+            deleteBook(doc, bookId);
+
+            TransformerFactory transformerFactory = TransformerFactory.newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            DOMSource source = new DOMSource(doc);
+            StreamResult result = new StreamResult(new File("books.xml"));
+            transformer.transform(source, result);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void deleteBook(Document doc, String bookId) {
+        NodeList students = doc.getElementsByTagName("Book");
+        for (int i = 0; i < students.getLength(); i++) {
+            Element studentNode = (Element) students.item(i);
+            String studentId = studentNode.getAttribute("bookId");
+            if (studentId.equals(bookId)) {
+                studentNode.getParentNode().removeChild(studentNode);
+            }
+        }
     }
 
     private static void searchForBook() {
@@ -56,6 +139,7 @@ public class Main {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(xmlFile);
+
             getBookByAttribute(doc, "Author", bookAuthor);
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,34 +190,13 @@ public class Main {
         System.out.println("Not Found !");
     }
 
-    /*
-         NodeList studentNodes = doc.getElementsByTagName("Book");
-            for (int i = 0; i < studentNodes.getLength(); i++) {
-                Node studentNode = studentNodes.item(i);
-                if (studentNode.getNodeType() == Node.ELEMENT_NODE) {
-                    Element studentElement = (Element) studentNode;
-                    NodeList textNodes = studentElement.getElementsByTagName(title);
-                    if (textNodes.getLength() > 0) {
-                        if (textNodes.item(0).getTextContent().equalsIgnoreCase(titleValue)) {
-                            System.out.println(textNodes.item(0).getTextContent());
-                            System.out.println(studentElement.getElementsByTagName("name").item(0).getTextContent());
-                        }
-                    }
-                }
-            }
-     */
-    private static void insertBooks() {
+    private static void insertBooks(Document doc, Element rootElement) {
         System.out.println("Enter number of books:");
         String numberOfBooks = scanner.nextLine();//read input string
 
         try {
-            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-            Document doc = docBuilder.newDocument();
-            // book root element
-            Element rootElement = doc.createElement("Catalogue");
-            doc.appendChild(rootElement);
-            for (int i = 1; i <= Integer.parseInt(numberOfBooks); i++) {
+            int numOfCurrentBooks = currentBooks.size();
+            for (int i =  numOfCurrentBooks + 1; i <= Integer.parseInt(numberOfBooks) + numOfCurrentBooks ; i++) { // insert new books
                 Book book = getBookFromUserInput(i);
                 createPrettyXMLUsingDOM(doc, book, rootElement);
             }
@@ -143,7 +206,7 @@ public class Main {
     }
 
     private static Book getBookFromUserInput(Integer i) {
-        System.out.println("Book " + i);
+        // System.out.println("Book " + i);
         System.out.println("Enter book author:");
         String author = scanner.nextLine();//read input string
 
