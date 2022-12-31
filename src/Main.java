@@ -1,5 +1,7 @@
 
 import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Scanner;
@@ -160,6 +162,20 @@ public class Main {
         }
     }
 
+//    private static void searchById() {
+//        System.out.println("Enter book title");
+//        String bookTitle = scanner.nextLine();//read input string
+//        try {
+//            File xmlFile = new File("books.xml");
+//            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+//            DocumentBuilder builder = factory.newDocumentBuilder();
+//            Document doc = builder.parse(xmlFile);
+//            getBookByAttribute(doc, "Title", bookTitle);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
+
     private static void getBookByAttribute(Document doc, String attribute, String attributeValue) {
         NodeList studentNodes = doc.getElementsByTagName("Book");
         for (int i = 0; i < studentNodes.getLength(); i++) {
@@ -197,7 +213,10 @@ public class Main {
         try {
             int numOfCurrentBooks = currentBooks.size();
             for (int i =  numOfCurrentBooks + 1; i <= Integer.parseInt(numberOfBooks) + numOfCurrentBooks ; i++) { // insert new books
-                Book book = getBookFromUserInput(i);
+                Book book ;
+                do {
+                    book = getBookFromUserInput();
+                } while (book == null);
                 createPrettyXMLUsingDOM(doc, book, rootElement);
             }
         } catch (Exception e) {
@@ -205,27 +224,114 @@ public class Main {
         }
     }
 
-    private static Book getBookFromUserInput(Integer i) {
+    private static Book getBookFromUserInput() {
         // System.out.println("Book " + i);
+        System.out.println("Enter book id:");
+        String id = scanner.nextLine();//read input string
+        if(!isValidInput(id)){
+            System.out.println("id can't be empty !");
+            return null;
+        }
+//        if(!isIdDuplicate(id)){
+//            System.out.println("this id is already used!");
+//            return null;
+//        }
+
+
         System.out.println("Enter book author:");
         String author = scanner.nextLine();//read input string
+        if(!isValidInput(author)){
+            System.out.println("author can't be empty !");
+            return null;
+        }
+        if(!isValidName(author)){
+            System.out.println("author must be lowercase characters only !");
+            return null;
+        }
+
 
         System.out.println("Enter book title:");
         String title = scanner.nextLine();//read input string
+        if(!isValidInput(title)){
+            System.out.println("title can't be empty !");
+            return null;
+        }
 
         System.out.println("Enter book genre:");
         String genre = scanner.nextLine();//read input string
+        if(!isValidInput(genre)){
+            System.out.println("genre can't be empty !");
+            return null;
+        }
+        if (!checkGenreCategory(genre)){
+            System.out.println("genre must be from this categories (Science, Fiction, Drama)");
+            return null;
+        }
 
         System.out.println("Enter book price:");
         String price = scanner.nextLine();//read input string
+        if(!isValidInput(price)){
+            System.out.println("price can't be empty !");
+            return null;
+        }
+//        if (!price.contains(".")){
+//            System.out.println("Enter a double price !");
+//        }
+        if (!price.matches( "\\d{1,6}\\.\\d{1,6}")){
+            System.out.println("Enter a double price !");
+            return null;
+        }
 
         System.out.println("Enter book publish date:");
         String publishDate = scanner.nextLine();//read input string
+        if(!isValidInput(publishDate)){
+            System.out.println("publish date can't be empty !");
+            return null;
+        }
+        if(!isValidDateFormat(publishDate)){
+            System.out.println("enter a valid date format! (ex: dd-MM-yyyy) ");
+            return null;
+        }
 
         System.out.println("Enter book description:");
         String description = scanner.nextLine();//read input string
 
-        return new Book("bk " + i, author, title, genre, price, publishDate, description);
+        return  new Book( id, author, title, genre, price, publishDate, description);
+
+    }
+
+    private static boolean checkGenreCategory(String genre) {
+        ArrayList categories = new ArrayList();
+        categories.add("Science");
+        categories.add("Fiction");
+        categories.add("Drama");
+        return categories.contains(genre);
+    }
+
+    private static boolean isValidDateFormat(String publishDate) {
+        return isValidDate(publishDate);
+    }
+    public static boolean isValidDate(String inDate) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
+        dateFormat.setLenient(false);
+        try {
+            dateFormat.parse(inDate.trim());
+        } catch (ParseException pe) {
+            return false;
+        }
+        return true;
+    }
+
+//    private static boolean isIdDuplicate(String id) {
+//
+//    }
+
+    private static boolean isValidName(String author) {
+        return author.matches("\\p{javaLowerCase}*");
+    }
+
+    private static Boolean isValidInput(String input) {
+        return !input.isEmpty();
     }
 
     private static void createPrettyXMLUsingDOM(Document doc, Book book, Element rootElement) {
